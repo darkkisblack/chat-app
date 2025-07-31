@@ -78,7 +78,7 @@ CORS_ORIGIN=http://localhost:5173
 ## API
 
 ### Аутентификация
-- `POST /api/auth/register` - регистрация
+- `POST /api/auth/register` - регистрация (в перспективе)
 - `POST /api/auth/login` - вход
 - `POST /api/auth/logout` - выход
 
