@@ -20,13 +20,6 @@
     
     <template #append>
       <div class="chat-meta">
-        <span
-          v-if="chat.memberCount > 0"
-          class="member-count"
-        >
-          {{ chat.memberCount }}
-        </span>
-        
         <v-badge
           v-if="showUnreadCount && chat.unreadCount > 0"
           :content="chat.unreadCount"
