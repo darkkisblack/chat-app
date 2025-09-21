@@ -41,39 +41,76 @@ server/
 └── utils/        # Утилиты
 ```
 
-## Установка
+## Установка и запуск
 
 ### Требования
 - Node.js 18+
 - MongoDB
 - npm
 
-### Backend
+### 1. Установка зависимостей
+
 ```bash
+# Backend
 cd server
 npm install
-cp env.example .env
-# Настрой .env
-npm run dev
-```
 
-### Frontend
-```bash
-cd client
+# Frontend  
+cd ../client
 npm install
-npm run dev
 ```
 
-## Переменные окружения
+### 2. Настройка окружения
 
-Создай `.env` в папке `server`:
+Создай файл `.env` в папке `server`:
 
 ```env
 PORT=3000
 MONGODB_URI=mongodb://localhost:27017/chat-app
-JWT_SECRET=your-secret-key
+JWT_SECRET=your-secret-key-change-in-production
 CORS_ORIGIN=http://localhost:5173
+CLIENT_URL=http://localhost:5173
 ```
+
+### 3. Запуск MongoDB
+
+**Локально:**
+```bash
+mongod
+```
+
+**Docker:**
+```bash
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+```
+
+### 4. Запуск приложения
+
+**Backend:**
+```bash
+cd server
+npm run dev
+```
+
+**Frontend:**
+```bash
+cd client
+npm run dev
+```
+
+## Первый запуск
+
+1. Открой http://localhost:5173
+2. Нажми "Нет аккаунта? Зарегистрироваться"
+3. Создай свой аккаунт
+4. Войди в систему
+5. Создай первый чат с кем-то (если есть другие пользователи)
+
+## Доступ к приложению
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000
+- Health check: http://localhost:3000/health
 
 ## API
 
@@ -93,6 +130,44 @@ CORS_ORIGIN=http://localhost:5173
 ### Чаты
 - `GET /api/chats` - список чатов
 - `POST /api/chats` - создать чат
+- `GET /api/chats/:id` - получить чат
+- `PUT /api/chats/:id` - обновить чат
+- `POST /api/chats/:id/participants` - добавить участника
+- `DELETE /api/chats/:id/participants/:userId` - удалить участника
+
+## WebSocket события
+
+### Клиент -> Сервер
+- `join_chats` - присоединиться к чатам пользователя
+- `join_chat` - присоединиться к конкретному чату
+- `leave_chat` - покинуть чат
+- `send_message` - отправить сообщение
+
+### Сервер -> Клиент
+- `new_message` - новое сообщение
+- `error` - ошибка
+
+## Troubleshooting
+
+**MongoDB не подключается:**
+- Проверь что MongoDB запущен
+- Проверь MONGODB_URI в .env
+
+**CORS ошибки:**
+- Проверь CORS_ORIGIN в .env
+- Убедись что фронт запущен на правильном порту
+
+**WebSocket не работает:**
+- Проверь что токен валидный
+- Проверь CLIENT_URL в .env сервера
+
+**Очистка БД:**
+```bash
+# Подключись к MongoDB
+mongosh
+use chat-app
+db.dropDatabase()
+```
 
 ## Тестирование
 

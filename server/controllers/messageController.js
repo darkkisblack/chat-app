@@ -28,9 +28,27 @@ exports.getChatMessages = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
+    // Преобразуем _id в id для фронтенда
+    const formattedMessages = messages.reverse().map(message => ({
+      id: message._id,
+      text: message.text,
+      userId: message.sender._id,
+      chatId: message.chat,
+      timestamp: message.createdAt,
+      isRead: message.isRead,
+      attachments: message.attachments,
+      sender: {
+        id: message.sender._id,
+        name: message.sender.name,
+        surname: message.sender.surname,
+        username: message.sender.username,
+        avatar: message.sender.avatar
+      }
+    }));
+
     res.json({
       success: true,
-      messages: messages.reverse(), // Возвращаем в хронологическом порядке
+      messages: formattedMessages,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -80,9 +98,27 @@ exports.sendMessage = async (req, res) => {
     const populatedMessage = await Message.findById(message._id)
       .populate('sender', 'name surname username avatar');
 
+    // Преобразуем _id в id для фронтенда
+    const formattedMessage = {
+      id: populatedMessage._id,
+      text: populatedMessage.text,
+      userId: populatedMessage.sender._id,
+      chatId: populatedMessage.chat,
+      timestamp: populatedMessage.createdAt,
+      isRead: populatedMessage.isRead,
+      attachments: populatedMessage.attachments,
+      sender: {
+        id: populatedMessage.sender._id,
+        name: populatedMessage.sender.name,
+        surname: populatedMessage.sender.surname,
+        username: populatedMessage.sender.username,
+        avatar: populatedMessage.sender.avatar
+      }
+    };
+
     res.status(201).json({
       success: true,
-      message: populatedMessage
+      message: formattedMessage
     });
   } catch (error) {
     console.error('Send message error:', error.message);

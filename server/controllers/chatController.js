@@ -16,9 +16,40 @@ exports.getUserChats = async (req, res) => {
     .populate('createdBy', 'name surname username')
     .sort({ updatedAt: -1 });
 
+    // Преобразуем _id в id для фронтенда
+    const formattedChats = chats.map(chat => ({
+      id: chat._id,
+      name: chat.name,
+      isGroup: chat.isGroup,
+      participants: chat.participants.map(participant => ({
+        id: participant._id,
+        name: participant.name,
+        surname: participant.surname,
+        username: participant.username,
+        avatar: participant.avatar,
+        status: participant.status,
+        lastActivity: participant.lastActivity
+      })),
+      createdBy: {
+        id: chat.createdBy._id,
+        name: chat.createdBy.name,
+        surname: chat.createdBy.surname,
+        username: chat.createdBy.username
+      },
+      lastMessage: chat.lastMessage ? {
+        id: chat.lastMessage._id,
+        text: chat.lastMessage.text,
+        sender: chat.lastMessage.sender,
+        createdAt: chat.lastMessage.createdAt
+      } : null,
+      lastMessageAt: chat.lastMessageAt,
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt
+    }));
+
     res.json({
       success: true,
-      chats
+      chats: formattedChats
     });
   } catch (error) {
     console.error('Get user chats error:', error.message);

@@ -136,8 +136,26 @@ io.on('connection', (socket) => {
       const populatedMessage = await Message.findById(message._id)
         .populate('sender', 'name surname username avatar');
 
+      // Форматируем сообщение для фронтенда
+      const formattedMessage = {
+        id: populatedMessage._id,
+        text: populatedMessage.text,
+        userId: populatedMessage.sender._id,
+        chatId: populatedMessage.chat,
+        timestamp: populatedMessage.createdAt,
+        isRead: populatedMessage.isRead,
+        attachments: populatedMessage.attachments,
+        sender: {
+          id: populatedMessage.sender._id,
+          name: populatedMessage.sender.name,
+          surname: populatedMessage.sender.surname,
+          username: populatedMessage.sender.username,
+          avatar: populatedMessage.sender.avatar
+        }
+      };
+
       // Отправляем сообщение всем участникам чата
-      io.to(`chat_${chatId}`).emit('new_message', populatedMessage);
+      io.to(`chat_${chatId}`).emit('new_message', formattedMessage);
       
     } catch (error) {
       console.error('Socket send message error:', error.message);

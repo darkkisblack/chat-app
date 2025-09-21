@@ -6,8 +6,9 @@ export interface Message {
   text: string;
   userId: string;
   chatId: string;
-  timestamp: Date;
+  timestamp: Date | string;
   isRead: boolean;
+  isSending?: boolean;
   attachments?: string[];
 }
 
@@ -40,11 +41,27 @@ export const useMessagesStore = defineStore('messages', () => {
       .forEach(msg => (msg.isRead = true));
   };
 
+  const updateMessage = (messageId: string, updates: Partial<Message>) => {
+    const message = messages.value.find(msg => msg.id === messageId);
+    if (message) {
+      Object.assign(message, updates);
+    }
+  };
+
+  const removeMessage = (messageId: string) => {
+    const index = messages.value.findIndex(msg => msg.id === messageId);
+    if (index > -1) {
+      messages.value.splice(index, 1);
+    }
+  };
+
   return {
     messages,
     messagesByChat,
     unreadCount,
     addMessage,
+    updateMessage,
+    removeMessage,
     markAsRead,
     markChatAsRead,
   };

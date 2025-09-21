@@ -35,8 +35,10 @@
 </template>
 
 <script setup lang="ts">
-import { useSendMessage } from '@/features/sendMessage/model/useSendMessage';
+import { ref } from 'vue';
 import { useUserStore } from '@/entities/user/model/useUserStore';
+import { useMessagesStore } from '@/entities/message/model/useMessagesStore';
+import { socketService } from '@/shared/lib/socket';
 
 interface Props {
   chatId: string;
@@ -44,13 +46,47 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const { messageText, isSending, error, sendMessage, clearError } = useSendMessage();
 const userStore = useUserStore();
+const messagesStore = useMessagesStore();
+
+const messageText = ref('');
+const isSending = ref(false);
+const error = ref('');
 
 const handleSend = async () => {
-  if (!userStore.currentUser || !messageText.value.trim()) return;
+  if (!userStore.currentUser || !messageText.value.trim() || isSending.value) return;
   
-  await sendMessage(props.chatId, userStore.currentUser.id);
+  isSending.value = true;
+  error.value = '';
+  
+  try {
+    const messageTextValue = messageText.value.trim();
+    
+    // Создаем временное сообщение для отображения
+    const tempMessage = {
+      id: `temp_${Date.now()}`,
+      text: messageTextValue,
+      userId: userStore.currentUser!.id,
+      chatId: props.chatId,
+      timestamp: new Date(),
+      isRead: false,
+      isSending: true
+    };
+    
+    // Добавляем в store
+    messagesStore.addMessage(tempMessage);
+    
+    // Отправляем через WebSocket
+    socketService.sendMessage(props.chatId, messageTextValue);
+    
+    // Очищаем поле ввода
+    messageText.value = '';
+  } catch (err) {
+    error.value = 'Ошибка отправки сообщения';
+    console.error('Send message error:', err);
+  } finally {
+    isSending.value = false;
+  }
 };
 
 const handleKeyPress = (event: KeyboardEvent) => {
@@ -63,6 +99,10 @@ const handleKeyPress = (event: KeyboardEvent) => {
 const handleAttachment = () => {
   // TODO: Реализовать загрузку файлов
   console.log('Добавить вложение');
+};
+
+const clearError = () => {
+  error.value = '';
 };
 </script>
 

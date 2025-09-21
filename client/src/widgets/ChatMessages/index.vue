@@ -46,10 +46,30 @@
           
           <div
             class="message-text rounded-xl"
-            :class="{ 'message-text--unread': !message.isRead, 'bg-purple-darken-1': isCurrentUser(message.userId)
+            :class="{ 
+              'message-text--unread': !message.isRead, 
+              'bg-purple-darken-1': isCurrentUser(message.userId),
+              'message-text--sending': message.isSending,
+              'message-text--sent': !message.isSending && isCurrentUser(message.userId)
             }"
           >
             {{ message.text }}
+            <v-icon 
+              v-if="message.isSending" 
+              size="12" 
+              class="ml-2"
+              color="orange"
+            >
+              mdi-clock-outline
+            </v-icon>
+            <v-icon 
+              v-else-if="isCurrentUser(message.userId)" 
+              size="12" 
+              class="ml-2"
+              color="green"
+            >
+              mdi-check
+            </v-icon>
           </div>
         </div>
       </div>
@@ -61,7 +81,6 @@
 import { computed, onMounted, nextTick } from 'vue';
 import { useMessagesStore } from '@/entities/message/model/useMessagesStore';
 import { useUserStore } from '@/entities/user/model/useUserStore';
-import { useChatStore } from '@/entities/chat/model/useChatStore';
 import { formatRelativeTime } from '@/shared/lib/utils';
 
 interface Props {
@@ -72,7 +91,6 @@ const props = defineProps<Props>();
 
 const messagesStore = useMessagesStore();
 const userStore = useUserStore();
-const chatStore = useChatStore();
 
 const messages = computed(() => 
   messagesStore.messagesByChat(props.chatId)
@@ -158,8 +176,14 @@ onMounted(() => {
   word-wrap: break-word;
 }
 
-/* .message-text--unread {
-} */
+.message-text--sending {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.message-text--sent {
+  opacity: 1;
+}
 
 .message-item--own .message-text {
   color: rgb(var(--v-theme-on-primary));
