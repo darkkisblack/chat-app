@@ -29,11 +29,22 @@ exports.getUsers = async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
+    // Преобразуем _id в id для фронтенда
+    const formattedUsers = users.map(user => ({
+      id: user._id,
+      name: user.name,
+      surname: user.surname,
+      username: user.username,
+      avatar: user.avatar,
+      status: user.status,
+      lastActivity: user.lastActivity
+    }));
+
     const total = await User.countDocuments(query);
 
     res.json({
       success: true,
-      users,
+      users: formattedUsers,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -63,7 +74,16 @@ exports.getUserById = async (req, res) => {
 
     res.json({
       success: true,
-      user
+      user: {
+        id: user._id,
+        name: user.name,
+        surname: user.surname,
+        username: user.username,
+        avatar: user.avatar,
+        status: user.status,
+        lastActivity: user.lastActivity,
+        createdAt: user.createdAt
+      }
     });
   } catch (error) {
     console.error('Get user by ID error:', error.message);

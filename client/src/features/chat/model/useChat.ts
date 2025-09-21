@@ -1,9 +1,10 @@
 import { ref, computed } from 'vue';
 import { useChatStore } from '@/entities/chat/model/useChatStore';
 import { useMessagesStore } from '@/entities/message/model/useMessagesStore';
-import { useMessageSocket } from '@/entities/message/model/useMessageSocket';
+import { socketService } from '@/shared/lib/socket';
+import { fetchChats } from '@/entities/chat/api/fetchChats';
 import { API_ENDPOINTS } from '@/shared/lib/constants';
-import type { Chat } from '@/shared/lib/mockData';
+import type { Chat } from '@/shared/types/chat';
 
 export const useChat = () => {
   const currentChatId = ref<string | null>(null);
@@ -12,8 +13,6 @@ export const useChat = () => {
 
   const chatStore = useChatStore();
   const messagesStore = useMessagesStore();
-  const { connect: connectSocket, disconnect: disconnectSocket } =
-    useMessageSocket();
 
   const currentChat = computed(() =>
     currentChatId.value
@@ -34,20 +33,18 @@ export const useChat = () => {
     try {
       // Отключаемся от предыдущего чата
       if (currentChatId.value) {
-        disconnectSocket();
+        socketService.leaveChat(currentChatId.value);
       }
 
-      // Загружаем сообщения чата (пока используем mock)
-      // TODO: Реализовать loadMessages в store
-
       // Подключаемся к WebSocket
-      connectSocket(chatId);
+      socketService.joinChat(chatId);
 
-      // Обновляем текущий чат
+      // Обновляем текущий чат в store
+      chatStore.setCurrentChat(chatId);
       currentChatId.value = chatId;
 
-      // Отмечаем чат как прочитанный
-      await chatStore.markChatAsRead(chatId);
+      // Отмечаем сообщения как прочитанные
+      messagesStore.markChatAsRead(chatId);
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Ошибка загрузки чата';
     } finally {
@@ -60,8 +57,8 @@ export const useChat = () => {
     error.value = null;
 
     try {
-      // TODO: Реализовать loadChats в store
-      // Пока используем mock данные
+      const chats = await fetchChats();
+      chatStore.setChats(chats);
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Ошибка загрузки чатов';
@@ -88,10 +85,9 @@ export const useChat = () => {
       }
 
       const newChat = await response.json();
-      // TODO: Добавить addChat метод в store
-      // chatStore.addChat(newChat);
+      chatStore.addChat(newChat.chat);
 
-      return newChat;
+      return newChat.chat;
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : 'Ошибка создания канала';

@@ -16,14 +16,54 @@
       >
         <v-card class="auth-card">
           <v-card-title class="text-center text-h4 mb-4">
-            Вход в чат
+            {{ isLogin ? 'Вход в чат' : 'Регистрация' }}
           </v-card-title>
           
           <v-card-text>
-            <v-form @submit.prevent="handleLogin">
+            <v-form @submit.prevent="handleSubmit">
+              <!-- Поля для регистрации -->
+              <template v-if="!isLogin">
+                <v-text-field
+                  v-model="name"
+                  label="Имя"
+                  type="text"
+                  required
+                  :errorMessages="errors.name"
+                  @input="clearError"
+                />
+                
+                <v-text-field
+                  v-model="surname"
+                  label="Фамилия"
+                  type="text"
+                  required
+                  :errorMessages="errors.surname"
+                  @input="clearError"
+                />
+                
+                <v-text-field
+                  v-model="username"
+                  label="Username"
+                  type="text"
+                  required
+                  :errorMessages="errors.username"
+                  @input="clearError"
+                />
+                
+                <v-text-field
+                  v-model="email"
+                  label="Email"
+                  type="email"
+                  required
+                  :errorMessages="errors.email"
+                  @input="clearError"
+                />
+              </template>
+              
+              <!-- Поля для входа -->
               <v-text-field
                 v-model="loginValue"
-                label="Логин"
+                label="Логин или Email"
                 type="text"
                 required
                 :errorMessages="errors.login"
@@ -56,7 +96,17 @@
                 :disabled="!isFormValid"
                 class="mt-4"
               >
-                Войти
+                {{ isLogin ? 'Войти' : 'Зарегистрироваться' }}
+              </v-btn>
+              
+              <v-btn
+                variant="text"
+                color="primary"
+                block
+                class="mt-2"
+                @click="toggleMode"
+              >
+                {{ isLogin ? 'Нет аккаунта? Зарегистрироваться' : 'Есть аккаунт? Войти' }}
               </v-btn>
             </v-form>
             
@@ -75,46 +125,120 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
 import { useAuth } from '@/features/auth/model/useAuth';
-const router = useRouter();
-const { login, isLoading, error, clearError } = useAuth();
 
+const { login, register, isLoading, error, clearError } = useAuth();
+
+const isLogin = ref(true);
 const loginValue = ref('');
 const password = ref('');
+const name = ref('');
+const surname = ref('');
+const username = ref('');
+const email = ref('');
 const rememberMe = ref(false);
 const showPassword = ref(false);
+
 const errors = ref({
   login: '',
   password: '',
+  name: '',
+  surname: '',
+  username: '',
+  email: '',
 });
 
 const generalError = computed(() => error.value);
 
-const isFormValid = computed(() => 
-  loginValue.value.trim() && password.value.trim()
-);
+const isFormValid = computed(() => {
+  if (isLogin.value) {
+    return loginValue.value.trim() && password.value.trim();
+  } else {
+    return name.value.trim() && surname.value.trim() && 
+           username.value.trim() && email.value.trim() && 
+           password.value.trim();
+  }
+});
 
-const handleLogin = async () => {
+const toggleMode = () => {
+  isLogin.value = !isLogin.value;
+  clearError();
+  // Очищаем поля
+  loginValue.value = '';
+  password.value = '';
+  name.value = '';
+  surname.value = '';
+  username.value = '';
+  email.value = '';
+  errors.value = {
+    login: '',
+    password: '',
+    name: '',
+    surname: '',
+    username: '',
+    email: '',
+  };
+};
+
+const handleSubmit = async () => {
   // Сброс ошибок
-  errors.value = { login: '', password: '' };
+  errors.value = {
+    login: '',
+    password: '',
+    name: '',
+    surname: '',
+    username: '',
+    email: '',
+  };
   
   // Валидация
-  if (!loginValue.value.trim()) {
-    errors.value.login = 'Обязательное поле';
-    return;
-  }
-  
-  if (!password.value.trim()) {
-    errors.value.password = 'Обязательное поле';
-    return;
-  }
-  
-  try {
-    await login(loginValue.value, password.value, rememberMe.value);
-    // Редирект уже происходит в useAuth
-  } catch (err) {
-    // Ошибка обрабатывается в useAuth
+  if (isLogin.value) {
+    if (!loginValue.value.trim()) {
+      errors.value.login = 'Обязательное поле';
+      return;
+    }
+    
+    if (!password.value.trim()) {
+      errors.value.password = 'Обязательное поле';
+      return;
+    }
+    
+    try {
+      await login(loginValue.value, password.value, rememberMe.value);
+    } catch {
+      // Ошибка обрабатывается в useAuth
+    }
+  } else {
+    if (!name.value.trim()) {
+      errors.value.name = 'Обязательное поле';
+      return;
+    }
+    
+    if (!surname.value.trim()) {
+      errors.value.surname = 'Обязательное поле';
+      return;
+    }
+    
+    if (!username.value.trim()) {
+      errors.value.username = 'Обязательное поле';
+      return;
+    }
+    
+    if (!email.value.trim()) {
+      errors.value.email = 'Обязательное поле';
+      return;
+    }
+    
+    if (!password.value.trim()) {
+      errors.value.password = 'Обязательное поле';
+      return;
+    }
+    
+    try {
+      await register(name.value, surname.value, username.value, email.value, password.value);
+    } catch {
+      // Ошибка обрабатывается в useAuth
+    }
   }
 };
 </script>

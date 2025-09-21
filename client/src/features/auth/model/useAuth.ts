@@ -4,17 +4,9 @@ import type { User } from '@/entities/user/model/useUserStore';
 import { useUserStore } from '@/entities/user/model/useUserStore';
 import { useToastStore } from '@/shared/lib/useToastStore';
 import { API_ENDPOINTS, STORAGE_KEYS } from '@/shared/lib/constants';
+import { login as loginApi, register as registerApi, type AuthResponse as ApiAuthResponse } from '@/entities/user/api/authApi';
+import { socketService } from '@/shared/lib/socket';
 
-interface LoginData {
-  login: string;
-  password: string;
-  rememberMe?: boolean;
-}
-
-interface AuthResponse {
-  token: string;
-  user: User;
-}
 
 export const useAuth = () => {
   const user = ref<User | null>(null);
@@ -37,46 +29,48 @@ export const useAuth = () => {
     error.value = null;
 
     try {
-      // Моковая авторизация для демонстрации
-      if (loginValue === 'demo' && password === 'password') {
-        const mockUser: User = {
-          id: '1',
-          name: 'Демо Пользователь',
-          email: 'demo@example.com',
-          avatar: 'https://via.placeholder.com/150',
-          status: 'online',
-        };
+      const response: ApiAuthResponse = await loginApi({
+        login: loginValue,
+        password: password
+      });
 
-        const mockToken = 'mock-jwt-token-' + Date.now();
+      const userData: User = {
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        avatar: response.user.avatar,
+        status: response.user.status as string,
+      };
 
-        // Сохраняем токен
-        token.value = mockToken;
-        user.value = mockUser;
+      // Сохраняем токен
+      token.value = response.token;
+      user.value = userData;
 
-        // Обновляем userStore
-        userStore.setCurrentUser(mockUser);
-        userStore.addUser(mockUser);
+      // Обновляем userStore
+      userStore.setCurrentUser(userData);
+      userStore.addUser(userData);
 
-        if (rememberMe) {
-          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);
-          localStorage.setItem(
-            STORAGE_KEYS.USER_DATA,
-            JSON.stringify(mockUser)
-          );
-        } else {
-          sessionStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);
-          sessionStorage.setItem(
-            STORAGE_KEYS.USER_DATA,
-            JSON.stringify(mockUser)
-          );
-        }
-
-        // Редирект на чаты
-        console.log('Авторизация успешна, редирект на /');
-        await router.push('/');
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.token);
+        localStorage.setItem(
+          STORAGE_KEYS.USER_DATA,
+          JSON.stringify(userData)
+        );
       } else {
-        throw new Error('Неверный логин или пароль');
+        sessionStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.token);
+        sessionStorage.setItem(
+          STORAGE_KEYS.USER_DATA,
+          JSON.stringify(userData)
+        );
       }
+
+          // Подключаемся к WebSocket с небольшой задержкой
+          setTimeout(() => {
+            socketService.connect(response.token);
+          }, 100);
+
+      // Редирект на чаты
+      await router.push('/');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ошибка входа';
       error.value = errorMessage;
@@ -105,6 +99,9 @@ export const useAuth = () => {
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
+      // Отключаемся от WebSocket
+      socketService.disconnect();
+      
       // Очищаем данные
       token.value = null;
       user.value = null;
@@ -118,7 +115,7 @@ export const useAuth = () => {
     }
   };
 
-  const initAuth = () => {
+  const initAuth = async () => {
     // Проверяем сохраненный токен при загрузке
     const savedToken =
       localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
@@ -135,6 +132,72 @@ export const useAuth = () => {
       // Синхронизируем с userStore
       userStore.setCurrentUser(userData);
       userStore.addUser(userData);
+
+      // Подключаемся к WebSocket только если еще не подключены
+      if (!socketService.isConnected()) {
+        setTimeout(() => {
+          socketService.connect(savedToken);
+        }, 100);
+      }
+    }
+  };
+
+  const register = async (
+    name: string,
+    surname: string,
+    username: string,
+    email: string,
+    password: string
+  ) => {
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const response: ApiAuthResponse = await registerApi({
+        name,
+        surname,
+        username,
+        email,
+        password
+      });
+
+      const userData: User = {
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
+        avatar: response.user.avatar,
+        status: response.user.status as string,
+      };
+
+      // Сохраняем токен
+      token.value = response.token;
+      user.value = userData;
+
+      // Обновляем userStore
+      userStore.setCurrentUser(userData);
+      userStore.addUser(userData);
+
+      // Сохраняем в localStorage
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.token);
+      localStorage.setItem(
+        STORAGE_KEYS.USER_DATA,
+        JSON.stringify(userData)
+      );
+
+          // Подключаемся к WebSocket с небольшой задержкой
+          setTimeout(() => {
+            socketService.connect(response.token);
+          }, 100);
+
+      // Редирект на чаты
+      await router.push('/');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка регистрации';
+      error.value = errorMessage;
+      showError(errorMessage);
+      throw err;
+    } finally {
+      isLoading.value = false;
     }
   };
 
@@ -149,6 +212,7 @@ export const useAuth = () => {
     error,
     isAuthenticated,
     login,
+    register,
     logout,
     initAuth,
     clearError,

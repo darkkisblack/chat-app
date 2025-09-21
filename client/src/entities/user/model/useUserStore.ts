@@ -4,9 +4,11 @@ import { ref, computed } from 'vue';
 export interface User {
   id: string;
   name: string;
+  surname?: string;
   email: string;
+  username?: string;
   avatar?: string;
-  status: 'online' | 'offline' | 'away';
+  status: string;
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -31,7 +33,7 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  const updateUserStatus = (userId: string, status: User['status']) => {
+  const updateUserStatus = (userId: string, status: string) => {
     const user = users.value.find(u => u.id === userId);
     if (user) {
       user.status = status;

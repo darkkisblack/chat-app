@@ -15,6 +15,7 @@ app.use(router);
 app.use(vuetify);
 
 const { initAuth } = useAuth();
-initAuth();
 
+// Инициализируем аутентификацию перед монтированием
+initAuth();
 app.mount('#app');

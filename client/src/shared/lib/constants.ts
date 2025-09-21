@@ -18,15 +18,21 @@ export const API_ENDPOINTS = {
     SEND: '/api/messages',
     MARK_READ: (messageId: string) => `/api/messages/${messageId}/read`,
   },
-  WEBSOCKET: {
-    BASE_URL: 'ws://localhost:3000/ws',
-    CHAT: (chatId: string) => `ws://localhost:3000/ws/chats/${chatId}`,
-  },
 } as const;
 
 // WebSocket event types
 export const WS_EVENTS = {
-  MESSAGE: 'message',
+  // Client -> Server
+  JOIN_CHATS: 'join_chats',
+  JOIN_CHAT: 'join_chat',
+  LEAVE_CHAT: 'leave_chat',
+  SEND_MESSAGE: 'send_message',
+  
+  // Server -> Client
+  NEW_MESSAGE: 'new_message',
+  ERROR: 'error',
+  
+  // Future events
   USER_JOINED: 'user_joined',
   USER_LEFT: 'user_left',
   TYPING: 'typing',

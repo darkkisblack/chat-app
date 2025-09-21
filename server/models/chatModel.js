@@ -7,7 +7,9 @@ const chatSchema = new Schema(
     name: {
       type: String,
       trim: true,
-      required: true
+      required: function() {
+        return this.isGroup;
+      }
     },
     isGroup: {
       type: Boolean,

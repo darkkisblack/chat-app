@@ -1,9 +1,10 @@
 /**
  * Форматирует дату в относительное время (например, "2 минуты назад")
  */
-export const formatRelativeTime = (date: Date): string => {
+export const formatRelativeTime = (date: Date | string): string => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
     return 'только что';
@@ -24,7 +25,7 @@ export const formatRelativeTime = (date: Date): string => {
     return `${diffInDays} ${getDaysWord(diffInDays)} назад`;
   }
 
-  return date.toLocaleDateString('ru-RU');
+  return dateObj.toLocaleDateString('ru-RU');
 };
 
 const getMinutesWord = (minutes: number): string => {
@@ -87,7 +88,7 @@ export const formatFileSize = (bytes: number): string => {
 /**
  * Дебаунс функция
  */
-export const debounce = <T extends (...args: any[]) => any>(
+export const debounce = <T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {
