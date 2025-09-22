@@ -169,11 +169,16 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start
-connectDB().then(() => {
-  server.listen(port, () => {
-    console.log(`App listening on port ${port}`)
+// Экспортируем app для тестирования
+module.exports = app;
+
+// Проверяю, что не запускаем тесты
+if (process.env.NODE_ENV !== 'test') {
+  connectDB().then(() => {
+    server.listen(port, () => {
+      console.log(`App listening on port ${port}`)
+    })
+  }).catch(() => {
+    process.exit(1)
   })
-}).catch(() => {
-  process.exit(1)
-})
+}
